@@ -30,11 +30,13 @@
     "test:js": "wp-scripts test-unit-js",
     "test:js:coverage": "wp-scripts test-unit-js --coverage --coverageDirectory=tests/coverage/js",
     "test:php": "composer test -- --no-coverage",
-    "test:php:coverage": "composer test"
+    "test:php:coverage": "composer test",
+    "wp-env": "wp-env"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "5.16.1",
     "@testing-library/react": "12.1.2",
+    "@wordpress/env": "^5.3.0",
     "@wordpress/eslint-plugin": "9.3.0",
     "@wordpress/scripts": "19.2.3",
     "acorn": "8.7.0",
