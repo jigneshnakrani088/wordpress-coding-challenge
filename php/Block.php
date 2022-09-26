@@ -64,6 +64,7 @@ class Block {
 	 * @return string The markup of the block.
 	 */
 	public function render_callback( $attributes, $content, $block ): string {
+		$cache_key  = 'xwp_site_counts_foo_baz_posts_list';
 		$post_types = get_post_types( [ 'public' => true ] );
 		$class_name = ! empty( $attributes['className'] ) ? $attributes['className'] : '';
 		$post_id    = $block->context['postId'];
@@ -83,6 +84,7 @@ class Block {
 						continue;
 					}
 
+					// Not caching this, because WordPress handles caching for wp_count_posts.
 					$post_counts = wp_count_posts( $post_type_slug );
 
 					if ( 'attachment' === $post_type_slug ) {
@@ -122,33 +124,42 @@ class Block {
 				?>
 			</p>
 			<?php
-			$query = new WP_Query(
-				[
-					'post_type'              => [ 'post', 'page' ],
-					'post_status'            => 'any',
-					'posts_per_page'         => 6,
-					'fields'                 => 'ids',
-					'date_query'             => [
-						[
-							'hour'    => 9,
-							'compare' => '>=',
-						],
-						[
-							'hour'    => 17,
-							'compare' => '<=',
-						],
-					],
-					'tag'                    => 'foo',
-					'category_name'          => 'baz',
-					'no_found_rows'          => true,
-					'update_post_meta_cache' => false,
-					'ignore_sticky_posts'    => true,
-				]
-			);
+			$posts_list = wp_cache_get( $cache_key, 'site-counts' );
 
-			if ( $query->have_posts() ) :
+			if ( ! $posts_list ) {
+				$query = new WP_Query(
+					[
+						'post_type'              => [ 'post', 'page' ],
+						'post_status'            => 'public',
+						'posts_per_page'         => 6,
+						'fields'                 => 'ids',
+						'date_query'             => [
+							[
+								'hour'    => 9,
+								'compare' => '>=',
+							],
+							[
+								'hour'    => 17,
+								'compare' => '<=',
+							],
+						],
+						'tag'                    => 'foo',
+						'category_name'          => 'baz',
+						'no_found_rows'          => true,
+						'update_post_meta_cache' => false,
+						'ignore_sticky_posts'    => true,
+					]
+				);
+
+				if ( $query->have_posts() ) :
+					$posts_list = $query->posts;
+					wp_cache_set( $cache_key, $posts_list, 'site-counts', 15 * MINUTE_IN_SECONDS );
+				endif;
+			}
+
+			if ( is_array( $posts_list ) ) :
 				// Remove current post from the list if available.
-				$filtered_posts = array_diff( $query->posts, [ $post_id ] );
+				$filtered_posts = array_diff( $posts_list, [ $post_id ] );
 				$posts_count    = min( count( $filtered_posts ), 5 );
 				?>
 				<h2>
